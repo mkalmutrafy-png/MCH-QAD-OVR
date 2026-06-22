@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>لوحة تحكم نظام البلاغات الإلكترونية OVR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --teal:#0E8C99; --teal-deep:#0A6B75; --teal-soft:#E5F4F5;
+  --ink:#142A30; --muted:#5C757D; --line:#E3EAEC; --line-soft:#EEF3F4;
+  --bg:#F4F7F8; --surface:#FFFFFF;
+  --green:#15A34A; --green-bg:#E7F6EC;
+  --amber:#E8930C; --amber-bg:#FDF1DE;
+  --red:#DC2626; --red-bg:#FBE9E9;
+  --blue:#2563EB; --blue-bg:#E8EFFD;
+  --shadow:0 1px 2px rgba(20,42,48,.05),0 6px 20px rgba(20,42,48,.06);
+  --shadow-sm:0 1px 2px rgba(20,42,48,.06);
+  --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;
+  font-feature-settings:"tnum" 1;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.55}
+button{font-family:inherit;cursor:pointer}
+select{font-family:inherit}
+.num{font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:plaintext;display:inline-block}
+
+/* ---------- Header ---------- */
+.appbar{position:sticky;top:0;z-index:60;background:linear-gradient(105deg,var(--teal-deep),var(--teal));
+  color:#fff;box-shadow:var(--shadow)}
+.appbar-inner{max-width:1480px;margin:0 auto;padding:12px 22px;display:flex;align-items:center;gap:16px}
+.brand{display:flex;align-items:center;gap:13px;min-width:0}
+.logo{width:42px;height:42px;flex:0 0 auto}
+.brand-txt h1{font-size:16px;font-weight:700;letter-spacing:-.2px;line-height:1.2}
+.brand-txt p{font-size:11.5px;opacity:.85;font-weight:400}
+.appbar .spacer{flex:1}
+.doc-ref{font-size:11px;background:rgba(255,255,255,.14);padding:5px 11px;border-radius:99px;
+  white-space:nowrap;display:flex;gap:8px;align-items:center}
+.toolbtn{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.13);color:#fff;
+  border:1px solid rgba(255,255,255,.22);padding:8px 13px;border-radius:10px;font-size:12.5px;font-weight:500;
+  transition:.15s}
+.toolbtn:hover{background:rgba(255,255,255,.25)}
+.toolbtn svg{width:15px;height:15px}
+
+/* ---------- Layout ---------- */
+.wrap{max-width:1480px;margin:0 auto;padding:18px 22px 60px}
+
+/* ---------- Filters ---------- */
+.filterbar{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--shadow-sm);padding:14px 16px;margin-bottom:16px}
+.filterbar-head{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+.filterbar-head .ico{width:30px;height:30px;border-radius:9px;background:var(--teal-soft);color:var(--teal-deep);
+  display:grid;place-items:center}
+.filterbar-head .ico svg{width:16px;height:16px}
+.filterbar-head b{font-size:13.5px}
+.filterbar-head span{color:var(--muted);font-size:12px}
+.filter-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:10px}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld label{font-size:11px;color:var(--muted);font-weight:500;padding-right:2px}
+.fld select{appearance:none;background:var(--surface);border:1px solid var(--line);border-radius:9px;
+  padding:8px 10px;font-size:12.5px;color:var(--ink);width:100%;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235C757D' stroke-width='2.4' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat:no-repeat;background-position:left 9px center;cursor:pointer;transition:.15s}
+.fld select:hover{border-color:var(--teal)}
+.fld select:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-soft)}
+.reset-row{display:flex;justify-content:flex-end;margin-top:11px}
+.reset-btn{background:var(--teal-soft);color:var(--teal-deep);border:none;padding:7px 15px;border-radius:9px;
+  font-size:12px;font-weight:600;display:inline-flex;gap:6px;align-items:center}
+.reset-btn:hover{background:#d4ecee}
+
+/* ---------- KPI strip ---------- */
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:15px 16px;
+  box-shadow:var(--shadow-sm);position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;inset-inline-start:0;top:0;bottom:0;width:4px;background:var(--teal)}
+.kpi.k-green::before{background:var(--green)} .kpi.k-amber::before{background:var(--amber)}
+.kpi.k-red::before{background:var(--red)} .kpi.k-blue::before{background:var(--blue)}
+.kpi .lbl{font-size:12px;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:7px;margin-bottom:9px}
+.kpi .lbl .dot{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;flex:0 0 auto}
+.kpi .lbl .dot svg{width:14px;height:14px}
+.kpi .val{font-size:27px;font-weight:700;letter-spacing:-.5px;line-height:1}
+.kpi .val small{font-size:14px;font-weight:600;color:var(--muted);margin-inline-start:2px}
+.kpi .sub{font-size:11px;color:var(--muted);margin-top:6px}
+.tealbg{background:var(--teal-soft);color:var(--teal-deep)} .greenbg{background:var(--green-bg);color:var(--green)}
+.amberbg{background:var(--amber-bg);color:var(--amber)} .redbg{background:var(--red-bg);color:var(--red)}
+.bluebg{background:var(--blue-bg);color:var(--blue)}
+
+/* ---------- Tabs ---------- */
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:13px;
+  padding:5px;margin-bottom:18px;box-shadow:var(--shadow-sm);overflow-x:auto}
+.tab{flex:1;white-space:nowrap;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:600;
+  padding:10px 14px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:.15s}
+.tab svg{width:16px;height:16px}
+.tab:hover{color:var(--ink);background:var(--bg)}
+.tab.active{background:var(--teal);color:#fff;box-shadow:0 2px 8px rgba(14,140,153,.3)}
+.tab .badge{background:var(--red);color:#fff;font-size:10px;font-weight:700;border-radius:99px;padding:1px 6px;min-width:17px}
+.tab.active .badge{background:rgba(255,255,255,.28)}
+
+/* ---------- Panels & cards ---------- */
+.panel{display:none}
+.panel.show{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-sm);
+  padding:18px;margin-bottom:16px}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}
+.card-head h3{font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:9px}
+.card-head h3 .ci{width:28px;height:28px;border-radius:8px;background:var(--teal-soft);color:var(--teal-deep);
+  display:grid;place-items:center;flex:0 0 auto}
+.card-head h3 .ci svg{width:15px;height:15px}
+.card-head .hint{font-size:11.5px;color:var(--muted)}
+.chart-box{position:relative;height:300px}
+.chart-box.tall{height:340px}
+
+/* ---------- Gauge ---------- */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px}
+.gauge-box{position:relative;width:300px;height:175px}
+.gauge-center{position:absolute;left:0;right:0;bottom:6px;text-align:center}
+.gauge-center .g-val{font-size:42px;font-weight:700;letter-spacing:-1px;line-height:1}
+.gauge-center .g-lbl{font-size:12px;color:var(--muted);margin-top:2px}
+.gauge-legend{display:flex;gap:18px;margin-top:18px;flex-wrap:wrap;justify-content:center}
+.gauge-legend span{font-size:11.5px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.gauge-legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+/* ---------- Tables ---------- */
+.tbl-scroll{overflow-x:auto;border-radius:11px;border:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{background:var(--line-soft);color:var(--muted);font-weight:600;text-align:right;padding:11px 13px;
+  white-space:nowrap;position:sticky;top:0;font-size:11.5px}
+tbody td{padding:10px 13px;border-top:1px solid var(--line-soft);white-space:nowrap}
+tbody tr:hover{background:var(--teal-soft)}
+.rank{width:26px;height:26px;border-radius:8px;display:inline-grid;place-items:center;font-weight:700;font-size:12px;
+  background:var(--line-soft);color:var(--muted)}
+.rank.r1{background:#FEF3C7;color:#B7791F} .rank.r2{background:#E5E7EB;color:#6B7280} .rank.r3{background:#FDE7D3;color:#C2620E}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:600}
+.pill i{width:7px;height:7px;border-radius:50%}
+.pill.green{background:var(--green-bg);color:var(--green)} .pill.green i{background:var(--green)}
+.pill.amber{background:var(--amber-bg);color:var(--amber)} .pill.amber i{background:var(--amber)}
+.pill.red{background:var(--red-bg);color:var(--red)} .pill.red i{background:var(--red)}
+.pill.blue{background:var(--blue-bg);color:var(--blue)} .pill.blue i{background:var(--blue)}
+.pill.gray{background:var(--line-soft);color:var(--muted)} .pill.gray i{background:var(--muted)}
+.bar-cell{display:flex;align-items:center;gap:9px;min-width:140px}
+.bar-track{flex:1;height:7px;background:var(--line-soft);border-radius:99px;overflow:hidden;min-width:60px}
+.bar-fill{height:100%;border-radius:99px}
+.statusdot{width:11px;height:11px;border-radius:50%;display:inline-block;box-shadow:0 0 0 3px var(--surface),0 0 0 4px currentColor}
+
+/* ---------- Heatmap ---------- */
+.heat{overflow-x:auto}
+.heat table{border-collapse:separate;border-spacing:3px}
+.heat th{background:transparent;position:static;padding:4px 6px;font-size:10.5px;color:var(--muted);text-align:center}
+.heat td.lbl{text-align:right;font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;padding:4px 8px;background:transparent}
+.heat td.cell{width:46px;height:34px;text-align:center;border-radius:7px;font-size:10.5px;font-weight:600;
+  color:#fff;cursor:default}
+.heat td.empty{background:var(--line-soft)!important;color:var(--muted)!important}
+
+/* ---------- Alerts ---------- */
+.alert-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.alert-card{border-radius:var(--r);padding:16px 17px;border:1px solid}
+.alert-card.danger{background:var(--red-bg);border-color:#f3cccc}
+.alert-card.warn{background:var(--amber-bg);border-color:#f4dcb3}
+.alert-card.info{background:var(--blue-bg);border-color:#cfddf9}
+.alert-card .ah{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.alert-card .ah .ai{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:#fff;flex:0 0 auto}
+.alert-card.danger .ai{background:var(--red)} .alert-card.warn .ai{background:var(--amber)} .alert-card.info .ai{background:var(--blue)}
+.alert-card .ai svg{width:18px;height:18px}
+.alert-card .ah b{font-size:13.5px;display:block}
+.alert-card .ah small{font-size:11px;color:var(--muted)}
+.alert-card .acount{margin-inline-start:auto;font-size:22px;font-weight:700}
+.alert-list{display:flex;flex-direction:column;gap:7px;max-height:260px;overflow:auto}
+.alert-item{background:rgba(255,255,255,.75);border-radius:9px;padding:9px 11px;display:flex;align-items:center;
+  gap:10px;font-size:12px}
+.alert-item .aid{font-weight:700;color:var(--ink)}
+.alert-item .am{color:var(--muted);flex:1;font-size:11.5px}
+.alert-item .av{font-weight:700;font-size:12px}
+.empty-note{font-size:12px;color:var(--muted);padding:14px;text-align:center}
+
+/* ---------- Detailed table controls ---------- */
+.tbl-controls{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.search{flex:1;min-width:200px;position:relative}
+.search input{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 38px 9px 12px;font-size:13px;
+  font-family:inherit}
+.search input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-soft)}
+.search svg{position:absolute;right:11px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--muted)}
+.exp-btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink);padding:9px 14px;border-radius:10px;font-size:12.5px;font-weight:600;transition:.15s}
+.exp-btn:hover{border-color:var(--teal);color:var(--teal-deep)}
+.exp-btn svg{width:15px;height:15px}
+.exp-btn.x{background:var(--green);color:#fff;border-color:var(--green)}
+.exp-btn.x:hover{background:#128a3f;color:#fff}
+.tbl-meta{font-size:11.5px;color:var(--muted);margin-top:10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.pager{display:flex;gap:5px}
+.pager button{border:1px solid var(--line);background:var(--surface);border-radius:7px;width:30px;height:30px;font-size:12px;
+  color:var(--ink)}
+.pager button:disabled{opacity:.4;cursor:default}
+.pager button.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+.section-title{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;
+  margin:4px 2px 12px;display:flex;align-items:center;gap:9px}
+.section-title::after{content:"";flex:1;height:1px;background:var(--line)}
+
+.legend-inline{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-top:2px}
+.legend-inline span{display:inline-flex;align-items:center;gap:6px}
+.legend-inline i{width:10px;height:10px;border-radius:3px}
+
+.foot{text-align:center;color:var(--muted);font-size:11.5px;margin-top:30px;padding-top:18px;border-top:1px solid var(--line)}
+
+#fileInput{display:none}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;
+  padding:11px 20px;border-radius:11px;font-size:13px;font-weight:500;opacity:0;transition:.3s;z-index:200;box-shadow:var(--shadow);pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- Responsive ---------- */
+@media(max-width:1200px){
+  .filter-grid{grid-template-columns:repeat(4,1fr)}
+  .kpis{grid-template-columns:repeat(3,1fr)}
+  .grid2,.grid3,.alert-grid{grid-template-columns:1fr}
+}
+@media(max-width:680px){
+  .filter-grid{grid-template-columns:repeat(2,1fr)}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .appbar-inner{flex-wrap:wrap}
+  .doc-ref{display:none}
+  .brand-txt h1{font-size:14px}
+}
+@media print{
+  .appbar,.filterbar,.tabs,.tbl-controls,.toolbtn,.reset-row,.pager{display:none!important}
+  .panel{display:block!important}
+  .card{break-inside:avoid;box-shadow:none;border-color:#ccc}
+  body{background:#fff}
+}
+
+/* ---------- دعم الاتجاه الإنجليزي (LTR) — يُضاف فقط ولا يغيّر تصميم RTL ---------- */
+html[dir="ltr"] thead th{text-align:left}
+html[dir="ltr"] .heat td.lbl{text-align:left}
+html[dir="ltr"] .fld label{padding-right:0;padding-left:2px}
+html[dir="ltr"] .fld select{background-position:right 9px center;padding:8px 10px}
+html[dir="ltr"] .search input{padding:9px 12px 9px 38px}
+html[dir="ltr"] .search svg{right:auto;left:11px}
+#langToggle{font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- ===== Header ===== -->
+<header class="appbar">
+  <div class="appbar-inner">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g fill="#fff" opacity=".95">
+          <path d="M50 8c6 10 6 20 0 30-6-10-6-20 0-30z"/>
+          <path d="M50 92c-6-10-6-20 0-30 6 10 6 20 0 30z"/>
+          <path d="M8 50c10-6 20-6 30 0-10 6-20 6-30 0z"/>
+          <path d="M92 50c-10 6-20 6-30 0 10-6 20-6 30 0z"/>
+          <path d="M20 20c11 2 19 8 23 18-11-2-19-8-23-18z"/>
+          <path d="M80 80c-11-2-19-8-23-18 11 2 19 8 23 18z"/>
+          <path d="M80 20c-2 11-8 19-18 23 2-11 8-19 18-23z"/>
+          <path d="M20 80c2-11 8-19 18-23-2 11-8 19-18 23z"/>
+        </g>
+        <circle cx="50" cy="50" r="9" fill="#fff"/>
+      </svg>
+      <div class="brand-txt">
+        <h1 data-i18n="title_h1">لوحة تحكم البلاغات الإلكترونية للحوادث والمخالفات (OVR)</h1>
+        <p data-i18n="title_p">مستشفى الولادة والأطفال – تجمع حفر الباطن الصحي · إدارة الجودة وسلامة المرضى</p>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <span class="doc-ref">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+      <span data-i18n="doc_ref">QM&amp;PS-APP-003 · إصدار 2</span>
+    </span>
+    <button class="toolbtn" id="langToggle" aria-label="Language / اللغة" title="Arabic / English">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      <span id="langToggleLabel">English</span>
+    </button>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
+    <button class="toolbtn" id="importBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+      <span data-i18n="btn_import">استيراد Excel</span>
+    </button>
+    <button class="toolbtn" id="printBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+      <span data-i18n="btn_print">طباعة / PDF</span>
+    </button>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ===== Filters ===== -->
+  <section class="filterbar">
+    <div class="filterbar-head">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54z"/></svg></span>
+      <b data-i18n="filters_title">الفلاتر التفاعلية</b>
+      <span data-i18n="filters_sub">— حدّد المعايير لتحديث جميع المؤشرات والرسوم</span>
+    </div>
+    <div class="filter-grid" id="filterGrid"></div>
+    <div class="reset-row">
+      <button class="reset-btn" id="resetBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+        <span data-i18n="btn_reset">إعادة التعيين</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ===== KPI strip ===== -->
+  <section class="kpis" id="kpiStrip"></section>
+
+  <!-- ===== Tabs ===== -->
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg><span data-i18n="tab_overview">نظرة عامة</span></button>
+    <button class="tab" data-tab="dept"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg><span data-i18n="tab_dept">الأقسام</span></button>
+    <button class="tab" data-tab="admin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span data-i18n="tab_admin">الإدارات</span></button>
+    <button class="tab" data-tab="trend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg><span data-i18n="tab_trend">الاتجاهات الزمنية</span></button>
+    <button class="tab" data-tab="alerts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span data-i18n="tab_alerts">التنبيهات</span> <span class="badge" id="alertBadge">0</span></button>
+    <button class="tab" data-tab="log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8M10 9H8"/></svg><span data-i18n="tab_log">سجل البلاغات</span></button>
+  </nav>
+
+  <!-- ===== Panel: Overview ===== -->
+  <section class="panel show" id="panel-overview">
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head"><h3><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg></span> <span data-i18n="ov_gauge">مؤشر الالتزام العام بالمستشفى</span></h3><span class="hint" data-i18n="ov_gauge_hint">حسب سياسة الإغلاق</span></div>
+        <div class="gauge-wrap">
+          <div class="gauge-box"><canvas id="gaugeChart"></canvas>
+            <div class="gauge-center"><div class="g-val" id="gaugeVal">0%</div><div class="g-lbl" id="gaugeLbl" data-i18n="gauge_lbl">نسبة الالتزام</div></div>
+          </div>
+          <div class="gauge-legend">
+            <span><i style="background:var(--green)"></i> <span data-i18n="gauge_leg_green">ممتاز ≥ 90%</span></span>
+            <span><i style="background:var(--amber)"></i> <span data-i18n="gauge_leg_amber">مقبول 80–89%</span></span>
+            <span><i style="background:var(--red)"></i> <span data-i18n="gauge_leg_red">دون المستهدف &lt; 80%</span></span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span> <span data-i18n="ov_type">توزيع البلاغات حسب النوع</span></h3></div>
+        <div class="chart-box"><canvas id="typeChart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg></span> <span data-i18n="ov_trendmain">الاتجاه الشهري: عدد البلاغات ونسبة الالتزام</span></h3>
+        <div class="legend-inline"><span><i style="background:var(--teal)"></i> <span data-i18n="leg_count">عدد البلاغات</span></span><span><i style="background:var(--green)"></i> <span data-i18n="leg_comp_pct">نسبة الالتزام %</span></span></div></div>
+      <div class="chart-box tall"><canvas id="trendMainChart"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ===== Panel: Departments ===== -->
+  <section class="panel" id="panel-dept">
+    <div class="card">
+      <div class="card-head"><h3><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span> <span data-i18n="dep_bar_title">عدد البلاغات لكل قسم (اللون حسب نسبة الالتزام)</span></h3></div>
+      <div class="chart-box tall"><canvas id="deptBarChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="7"/><rect x="12" y="7" width="3" height="11"/><rect x="17" y="13" width="3" height="5"/></svg></span> <span data-i18n="dep_rank_title">ترتيب الأقسام حسب الأداء</span></h3><span class="hint" data-i18n="dep_rank_hint">مرتبة حسب نسبة الالتزام بالإغلاق</span></div>
+      <div class="tbl-scroll">
+        <table id="deptTable"><thead><tr>
+          <th data-i18n="th_num">#</th><th data-i18n="th_dept">القسم</th><th data-i18n="th_admin">الإدارة</th><th data-i18n="th_total">إجمالي البلاغات</th><th data-i18n="th_closed">مغلقة</th><th data-i18n="th_overdue_now">متأخرة حالياً</th>
+          <th data-i18n="th_closure_rate">نسبة الإغلاق</th><th data-i18n="th_compliance">نسبة الالتزام</th><th data-i18n="th_avg_days">متوسط أيام الإغلاق</th><th data-i18n="th_indicator">المؤشر</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Panel: Administrations ===== -->
+  <section class="panel" id="panel-admin">
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head"><h3><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span> <span data-i18n="adm_comply_title">مقارنة الإدارات: نسبة الالتزام بالسياسة</span></h3></div>
+        <div class="chart-box"><canvas id="adminComplyChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> <span data-i18n="adm_time_title">متوسط زمن الإغلاق لكل إدارة (يوم)</span></h3></div>
+        <div class="chart-box"><canvas id="adminTimeChart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span> <span data-i18n="adm_detail_title">تفصيل أداء الإدارات</span></h3></div>
+      <div class="tbl-scroll">
+        <table id="adminTable"><thead><tr>
+          <th data-i18n="th_admin">الإدارة</th><th data-i18n="th_total">إجمالي البلاغات</th><th data-i18n="th_closed_ontime">مغلقة ضمن الوقت</th><th data-i18n="th_compliance">نسبة الالتزام</th>
+          <th data-i18n="th_overdue_now">متأخرة حالياً</th><th data-i18n="th_avg_time">متوسط زمن الإغلاق</th><th data-i18n="th_indicator">المؤشر</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Panel: Trends ===== -->
+  <section class="panel" id="panel-trend">
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head"><h3><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span> <span data-i18n="tr_comply">اتجاه نسبة الالتزام شهرياً</span></h3></div>
+        <div class="chart-box"><canvas id="complyTrendChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg></span> <span data-i18n="tr_overdue">اتجاه البلاغات المتأخرة شهرياً</span></h3></div>
+        <div class="chart-box"><canvas id="overdueTrendChart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> <span data-i18n="tr_closetime">اتجاه متوسط زمن الإغلاق خلال السنة (يوم)</span></h3></div>
+      <div class="chart-box"><canvas id="closureTimeTrendChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> <span data-i18n="tr_heat">خريطة حرارية: نسبة الالتزام حسب القسم والشهر</span></h3>
+        <div class="legend-inline"><span><i style="background:var(--green)"></i> <span data-i18n="heat_ge90">≥90%</span></span><span><i style="background:var(--amber)"></i> <span data-i18n="heat_8089">80–89%</span></span><span><i style="background:var(--red)"></i> <span data-i18n="heat_lt80">&lt;80%</span></span><span><i style="background:var(--line-soft)"></i> <span data-i18n="heat_nodata">لا بيانات</span></span></div></div>
+      <div class="heat" id="heatmap"></div>
+    </div>
+  </section>
+
+  <!-- ===== Panel: Alerts ===== -->
+  <section class="panel" id="panel-alerts">
+    <div class="alert-grid" id="alertGrid"></div>
+  </section>
+
+  <!-- ===== Panel: Log ===== -->
+  <section class="panel" id="panel-log">
+    <div class="card">
+      <div class="card-head"><h3><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span> <span data-i18n="log_title">سجل البلاغات التفصيلي</span></h3></div>
+      <div class="tbl-controls">
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input type="text" id="logSearch" data-i18n-ph="search_ph" placeholder="ابحث برقم البلاغ، القسم، الإدارة، النوع، الحالة…" />
+        </div>
+        <button class="exp-btn x" id="expExcel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13l6 6M15 13l-6 6"/></svg> <span data-i18n="btn_exp_excel">تصدير Excel</span></button>
+        <button class="exp-btn" id="expPdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg> <span data-i18n="btn_exp_pdf">تصدير PDF</span></button>
+      </div>
+      <div class="tbl-scroll">
+        <table id="logTable"><thead><tr>
+          <th data-i18n="th_report_id">رقم البلاغ</th><th data-i18n="th_dept">القسم</th><th data-i18n="th_admin">الإدارة</th><th data-i18n="th_type">النوع</th><th data-i18n="th_severity">الخطورة</th>
+          <th data-i18n="th_created">تاريخ الإنشاء</th><th data-i18n="th_closure">تاريخ الإغلاق</th><th data-i18n="th_duration">مدة الإغلاق</th><th data-i18n="th_target">المدة المستهدفة</th>
+          <th data-i18n="th_comp">الالتزام</th><th data-i18n="th_status">الحالة</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+      <div class="tbl-meta">
+        <span id="logCount"></span>
+        <div class="pager" id="logPager"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot" data-i18n="foot">
+    لوحة تحكم OVR · مبنية وفق سياسة «الإبلاغ الإلكتروني عن الحوادث والمخالفات QM&amp;PS-APP-003 إصدار 2» —
+    مدد الإغلاق المعتمدة: المنطقة الخضراء/الصفراء ٥ أيام عمل، العالية (الأمبر) ١٠ أيام، الحرجة (الحمراء) ١٤ يوماً.
+    البيانات المعروضة تجريبية ويمكن استبدالها بملف Excel فعلي عبر زر «استيراد Excel».
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   طبقة دعم اللغتين (عربي / إنجليزي) للوحة تحكم OVR
+   - لا تغيّر أي منطق: القيم العربية تبقى مفاتيح داخلية،
+     وتُترجَم النصوص المعروضة فقط عبر t()/tv()/ti().
+   ============================================================ */
+'use strict';
+
+let LANG = 'ar';
+try { LANG = localStorage.getItem('ovrLang') || 'ar'; } catch (e) { LANG = 'ar'; }
+const isRTL = () => LANG === 'ar';
+
+const EN_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+/* ---------- قاموس واجهة المستخدم ---------- */
+const I18N = {
+  page_title:        { ar:'لوحة تحكم نظام البلاغات الإلكترونية OVR', en:'OVR Reporting System Dashboard' },
+  title_h1:          { ar:'لوحة تحكم البلاغات الإلكترونية للحوادث والمخالفات (OVR)', en:'Occurrence Variance Reports (OVR) Dashboard' },
+  title_p:           { ar:'مستشفى الولادة والأطفال – تجمع حفر الباطن الصحي · إدارة الجودة وسلامة المرضى', en:'Maternity & Children Hospital – Hafar Al-Batin Health Cluster · Quality & Patient Safety' },
+  doc_ref:           { ar:'QM&PS-APP-003 · إصدار 2', en:'QM&PS-APP-003 · v2' },
+  btn_import:        { ar:'استيراد Excel', en:'Import Excel' },
+  btn_print:         { ar:'طباعة / PDF', en:'Print / PDF' },
+
+  filters_title:     { ar:'الفلاتر التفاعلية', en:'Interactive Filters' },
+  filters_sub:       { ar:'— حدّد المعايير لتحديث جميع المؤشرات والرسوم', en:'— Set criteria to update all metrics and charts' },
+  btn_reset:         { ar:'إعادة التعيين', en:'Reset' },
+  all:               { ar:'الكل', en:'All' },
+  f_year:            { ar:'السنة', en:'Year' },
+  f_month:           { ar:'الشهر', en:'Month' },
+  f_dept:            { ar:'القسم', en:'Department' },
+  f_admin:           { ar:'الإدارة', en:'Administration' },
+  f_type:            { ar:'نوع البلاغ', en:'Report Type' },
+  f_severity:        { ar:'مستوى الخطورة', en:'Severity' },
+  f_status:          { ar:'حالة البلاغ', en:'Status' },
+  f_compliance:      { ar:'حالة الالتزام', en:'Compliance' },
+
+  tab_overview:      { ar:'نظرة عامة', en:'Overview' },
+  tab_dept:          { ar:'الأقسام', en:'Departments' },
+  tab_admin:         { ar:'الإدارات', en:'Administrations' },
+  tab_trend:         { ar:'الاتجاهات الزمنية', en:'Trends' },
+  tab_alerts:        { ar:'التنبيهات', en:'Alerts' },
+  tab_log:           { ar:'سجل البلاغات', en:'Reports Log' },
+
+  kpi_total:         { ar:'إجمالي البلاغات', en:'Total Reports' },
+  kpi_open:          { ar:'البلاغات المفتوحة', en:'Open Reports' },
+  kpi_closed:        { ar:'البلاغات المغلقة', en:'Closed Reports' },
+  kpi_closure_rate:  { ar:'نسبة إغلاق البلاغات', en:'Closure Rate' },
+  kpi_compliance:    { ar:'نسبة الالتزام بالإغلاق', en:'Closure Compliance Rate' },
+  kpi_overdue_rate:  { ar:'نسبة التأخر في الإغلاق', en:'Overdue Closure Rate' },
+  kpi_avg_days:      { ar:'متوسط أيام الإغلاق', en:'Avg. Closure Days' },
+  kpi_high:          { ar:'البلاغات عالية الخطورة', en:'High-Severity Reports' },
+  kpi_overdue_now:   { ar:'المتأخرة حالياً', en:'Currently Overdue' },
+  kpi_under_review:  { ar:'قيد المراجعة', en:'Under Review' },
+  sub_of_total:      { ar:'من الإجمالي', en:'of total' },
+  sub_compliant_of:  { ar:'{a} من {b} بلاغ مغلق', en:'{a} of {b} closed' },
+  sub_working_days:  { ar:'أيام عمل', en:'working days' },
+  sub_high_crit:     { ar:'عالٍ + حرج', en:'High + Critical' },
+  sub_exceeded:      { ar:'تجاوزت المدة المحددة', en:'exceeded target time' },
+  unit_days_short:   { ar:'يوم', en:'days' },
+
+  ov_gauge:          { ar:'مؤشر الالتزام العام بالمستشفى', en:'Overall Hospital Compliance' },
+  ov_gauge_hint:     { ar:'حسب سياسة الإغلاق', en:'per closure policy' },
+  gauge_lbl:         { ar:'نسبة الالتزام', en:'Compliance Rate' },
+  gauge_leg_green:   { ar:'ممتاز ≥ 90%', en:'Excellent ≥ 90%' },
+  gauge_leg_amber:   { ar:'مقبول 80–89%', en:'Acceptable 80–89%' },
+  gauge_leg_red:     { ar:'دون المستهدف < 80%', en:'Below target < 80%' },
+  ov_type:           { ar:'توزيع البلاغات حسب النوع', en:'Reports by Type' },
+  ov_trendmain:      { ar:'الاتجاه الشهري: عدد البلاغات ونسبة الالتزام', en:'Monthly Trend: Reports Count & Compliance' },
+  leg_count:         { ar:'عدد البلاغات', en:'Reports Count' },
+  leg_comp_pct:      { ar:'نسبة الالتزام %', en:'Compliance %' },
+
+  dep_bar_title:     { ar:'عدد البلاغات لكل قسم (اللون حسب نسبة الالتزام)', en:'Reports per Department (color by compliance)' },
+  dep_rank_title:    { ar:'ترتيب الأقسام حسب الأداء', en:'Department Performance Ranking' },
+  dep_rank_hint:     { ar:'مرتبة حسب نسبة الالتزام بالإغلاق', en:'Ranked by closure compliance' },
+  th_num:            { ar:'#', en:'#' },
+  th_dept:           { ar:'القسم', en:'Department' },
+  th_admin:          { ar:'الإدارة', en:'Administration' },
+  th_total:          { ar:'إجمالي البلاغات', en:'Total' },
+  th_closed:         { ar:'مغلقة', en:'Closed' },
+  th_overdue_now:    { ar:'متأخرة حالياً', en:'Overdue Now' },
+  th_closure_rate:   { ar:'نسبة الإغلاق', en:'Closure %' },
+  th_compliance:     { ar:'نسبة الالتزام', en:'Compliance %' },
+  th_avg_days:       { ar:'متوسط أيام الإغلاق', en:'Avg Days' },
+  th_indicator:      { ar:'المؤشر', en:'Status' },
+  no_data:           { ar:'لا بيانات', en:'No data' },
+
+  adm_comply_title:  { ar:'مقارنة الإدارات: نسبة الالتزام بالسياسة', en:'Administrations: Policy Compliance' },
+  adm_time_title:    { ar:'متوسط زمن الإغلاق لكل إدارة (يوم)', en:'Avg Closure Time per Administration (days)' },
+  adm_detail_title:  { ar:'تفصيل أداء الإدارات', en:'Administration Performance Detail' },
+  th_closed_ontime:  { ar:'مغلقة ضمن الوقت', en:'Closed On-Time' },
+  th_avg_time:       { ar:'متوسط زمن الإغلاق', en:'Avg Closure Time' },
+
+  tr_comply:         { ar:'اتجاه نسبة الالتزام شهرياً', en:'Monthly Compliance Trend' },
+  tr_overdue:        { ar:'اتجاه البلاغات المتأخرة شهرياً', en:'Monthly Overdue Trend' },
+  tr_closetime:      { ar:'اتجاه متوسط زمن الإغلاق خلال السنة (يوم)', en:'Yearly Avg Closure Time Trend (days)' },
+  tr_heat:           { ar:'خريطة حرارية: نسبة الالتزام حسب القسم والشهر', en:'Heatmap: Compliance by Department & Month' },
+  heat_ge90:         { ar:'≥90%', en:'≥90%' },
+  heat_8089:         { ar:'80–89%', en:'80–89%' },
+  heat_lt80:         { ar:'<80%', en:'<80%' },
+  heat_nodata:       { ar:'لا بيانات', en:'No data' },
+  heat_cell_title:   { ar:'{d} — {m}: {p}% ({n} مغلق)', en:'{d} — {m}: {p}% ({n} closed)' },
+
+  al_over_title:     { ar:'بلاغات تجاوزت المدة المحددة', en:'Reports Past Target Time' },
+  al_over_sub:       { ar:'مفتوحة وتعدّت المدة المستهدفة للإغلاق', en:'Open and exceeded target closure time' },
+  al_soon_title:     { ar:'مستحقة خلال أقل من ٣ أيام', en:'Due Within 3 Days' },
+  al_soon_sub:       { ar:'تحتاج إجراءً عاجلاً قبل فوات المدة', en:'Need urgent action before deadline' },
+  al_admin_title:    { ar:'الإدارات الأقل التزاماً', en:'Lowest-Compliance Administrations' },
+  al_admin_sub:      { ar:'الأدنى في نسبة الإغلاق ضمن الوقت', en:'Lowest on-time closure rate' },
+  al_dept_title:     { ar:'الأقسام الأعلى في البلاغات المتأخرة', en:'Top Departments by Overdue' },
+  al_dept_sub:       { ar:'الأكثر تجاوزاً للمدة حالياً', en:'Most overdue currently' },
+  al_empty_over:     { ar:'لا توجد بلاغات تجاوزت المدة ضمن التصفية الحالية ✅', en:'No reports past target under current filters ✅' },
+  al_empty_soon:     { ar:'لا توجد بلاغات قاربت موعد الاستحقاق ✅', en:'No reports approaching deadline ✅' },
+  al_empty_admin:    { ar:'لا توجد بيانات إغلاق كافية', en:'Not enough closure data' },
+  al_empty_dept:     { ar:'لا توجد أقسام بها بلاغات متأخرة ✅', en:'No departments with overdue reports ✅' },
+  al_item_over:      { ar:'+{n} يوم تجاوز', en:'+{n} days over' },
+  al_item_soon:      { ar:'باقٍ {n} يوم', en:'{n} days left' },
+  al_item_admin:     { ar:'{t} بلاغ · {o} متأخر', en:'{t} reports · {o} overdue' },
+  al_item_dept_v:    { ar:'{o} متأخر', en:'{o} overdue' },
+
+  log_title:         { ar:'سجل البلاغات التفصيلي', en:'Detailed Reports Log' },
+  search_ph:         { ar:'ابحث برقم البلاغ، القسم، الإدارة، النوع، الحالة…', en:'Search by report ID, department, administration, type, status…' },
+  btn_exp_excel:     { ar:'تصدير Excel', en:'Export Excel' },
+  btn_exp_pdf:       { ar:'تصدير PDF', en:'Export PDF' },
+  th_report_id:      { ar:'رقم البلاغ', en:'Report ID' },
+  th_type:           { ar:'النوع', en:'Type' },
+  th_severity:       { ar:'الخطورة', en:'Severity' },
+  th_created:        { ar:'تاريخ الإنشاء', en:'Created Date' },
+  th_closure:        { ar:'تاريخ الإغلاق', en:'Closure Date' },
+  th_duration:       { ar:'مدة الإغلاق', en:'Closure Duration' },
+  th_target:         { ar:'المدة المستهدفة', en:'Target Time' },
+  th_comp:           { ar:'الالتزام', en:'Compliance' },
+  th_status:         { ar:'الحالة', en:'Status' },
+  log_open:          { ar:'مفتوح', en:'Open' },
+  log_compliant:     { ar:'ملتزم', en:'Compliant' },
+  log_noncompliant:  { ar:'غير ملتزم', en:'Non-Compliant' },
+  log_days:          { ar:'{n} يوم', en:'{n} days' },
+  log_days_open:     { ar:'{n} يوم (مفتوح)', en:'{n} days (open)' },
+  log_target_days:   { ar:'{n} يوم', en:'{n} days' },
+  log_empty:         { ar:'لا توجد بلاغات مطابقة. جرّب تعديل البحث أو الفلاتر.', en:'No matching reports. Try adjusting search or filters.' },
+  log_count:         { ar:'عرض {a}–{b} من {n} بلاغ', en:'Showing {a}–{b} of {n} reports' },
+
+  unit_report:       { ar:'بلاغ', en:'report(s)' },
+  unit_reports_overdue:{ ar:'بلاغ متأخر', en:'overdue' },
+  day_word:          { ar:'يوم', en:'days' },
+  ax_count:          { ar:'عدد البلاغات', en:'Reports' },
+  ax_comp:           { ar:'الالتزام %', en:'Compliance %' },
+  ds_count:          { ar:'عدد البلاغات', en:'Reports Count' },
+  ds_comp:           { ar:'نسبة الالتزام %', en:'Compliance %' },
+  tt_comp:           { ar:'التزام', en:'Compliance' },
+  band_green:        { ar:'أخضر', en:'Green' },
+  band_yellow:       { ar:'أصفر', en:'Yellow' },
+  band_red:          { ar:'أحمر', en:'Red' },
+
+  ex_id:             { ar:'رقم البلاغ', en:'Report ID' },
+  ex_dept:           { ar:'القسم', en:'Department' },
+  ex_admin:          { ar:'الإدارة', en:'Administration' },
+  ex_type:           { ar:'نوع البلاغ', en:'Report Type' },
+  ex_sev:            { ar:'مستوى الخطورة', en:'Severity' },
+  ex_created:        { ar:'تاريخ الإنشاء', en:'Created Date' },
+  ex_referral:       { ar:'تاريخ الإحالة', en:'Referral Date' },
+  ex_receipt:        { ar:'تاريخ الاستلام', en:'Receipt Date' },
+  ex_closure:        { ar:'تاريخ الإغلاق', en:'Closure Date' },
+  ex_dur:            { ar:'مدة الإغلاق (يوم)', en:'Closure Days' },
+  ex_open_days:      { ar:'الأيام المفتوحة', en:'Open Days' },
+  ex_target:         { ar:'المدة المستهدفة', en:'Target Time' },
+  ex_comp:           { ar:'حالة الالتزام', en:'Compliance Status' },
+  ex_status:         { ar:'حالة البلاغ', en:'Report Status' },
+  ex_owner:          { ar:'المسؤول عن الإجراء', en:'Action Owner' },
+  ex_sheet:          { ar:'سجل البلاغات', en:'Reports Log' },
+  ex_open:           { ar:'مفتوح', en:'Open' },
+  ex_filename:       { ar:'OVR_سجل_البلاغات', en:'OVR_Reports_Log' },
+
+  toast_export:      { ar:'تم تصدير {n} بلاغ إلى Excel', en:'Exported {n} reports to Excel' },
+  toast_empty_file:  { ar:'الملف فارغ أو لا يحتوي بيانات', en:'File is empty or has no data' },
+  toast_import_ok:   { ar:'تم استيراد {n} بلاغ من الملف بنجاح', en:'Imported {n} reports successfully' },
+  toast_import_err:  { ar:'تعذّر قراءة الملف. تأكد من التنسيق والأعمدة.', en:'Could not read the file. Check the format and columns.' },
+  toast_reset:       { ar:'تمت إعادة تعيين الفلاتر', en:'Filters reset' },
+  lang_toast:        { ar:'تم تغيير اللغة إلى العربية', en:'Language switched to English' },
+
+  foot:              { ar:'لوحة تحكم OVR · مبنية وفق سياسة «الإبلاغ الإلكتروني عن الحوادث والمخالفات QM&PS-APP-003 إصدار 2» — مدد الإغلاق المعتمدة: المنطقة الخضراء/الصفراء ٥ أيام عمل، العالية (الأمبر) ١٠ أيام، الحرجة (الحمراء) ١٤ يوماً. البيانات المعروضة تجريبية ويمكن استبدالها بملف Excel فعلي عبر زر «استيراد Excel».',
+                       en:'OVR Dashboard · Built per policy "Electronic Reporting of Incidents & Variances QM&PS-APP-003 v2" — Approved closure windows: Green/Yellow zone 5 working days, High (Amber) 10 days, Critical (Red) 14 days. Displayed data is sample and can be replaced with a real Excel file via the "Import Excel" button.' },
+};
+
+/* ---------- خريطة قيم البيانات (عربي → إنجليزي) للعرض فقط ---------- */
+const VMAP_EN = {
+  // الأقسام
+  'الطوارئ':'Emergency','العناية المركزة للأطفال':'Pediatric ICU','حضانة المواليد (NICU)':'Neonatal ICU (NICU)',
+  'الولادة والطلق':'Labor & Delivery','العيادات الخارجية':'Outpatient Clinics','التمريض العام':'General Nursing',
+  'تمريض النفاس':'Postpartum Nursing','تمريض الطوارئ':'Emergency Nursing','المختبر':'Laboratory','الأشعة':'Radiology',
+  'الصيدلية':'Pharmacy','خدمات التشغيل والصيانة':'Operations & Maintenance','أمن المنشآت':'Facility Security',
+  'غير محدد':'Unspecified',
+  // الإدارات
+  'الإدارة الطبية':'Medical Administration','إدارة التمريض':'Nursing Administration',
+  'الخدمات الطبية المساندة':'Allied Medical Services','الإدارة الإدارية والتشغيلية':'Administrative & Operations',
+  // الأنواع
+  'خطأ دوائي':'Medication Error','سقوط مريض':'Patient Fall','حدث وشيك (Near Miss)':'Near Miss',
+  'تأخر في تقديم الخدمة':'Service Delay','فشل / عطل أجهزة':'Equipment Failure','خطأ في الإجراء الطبي':'Clinical Procedure Error',
+  'مخالفة سلامة':'Safety Violation','عدوى مرتبطة بالرعاية':'Healthcare-Associated Infection','إصابة موظف':'Staff Injury',
+  'خطأ في تحديد هوية المريض':'Patient ID Error',
+  // الخطورة
+  'أخضر (منخفض)':'Green (Low)','أصفر (متوسط)':'Yellow (Medium)','برتقالي (عالٍ)':'Amber (High)','أحمر (حرج)':'Red (Critical)',
+  // الحالة
+  'مغلق':'Closed','قيد المراجعة':'Under Review','قيد المعالجة':'In Progress','جديد':'New',
+  // الالتزام
+  'ملتزم':'Compliant','غير ملتزم':'Non-Compliant','مفتوح (غير منطبق)':'Open (N/A)','مفتوح':'Open',
+  // الأشهر
+  'يناير':'Jan','فبراير':'Feb','مارس':'Mar','أبريل':'Apr','مايو':'May','يونيو':'Jun',
+  'يوليو':'Jul','أغسطس':'Aug','سبتمبر':'Sep','أكتوبر':'Oct','نوفمبر':'Nov','ديسمبر':'Dec',
+};
+
+/* ---------- دوال الترجمة ---------- */
+function t(key){ const e = I18N[key]; return e ? (e[LANG] != null ? e[LANG] : e.ar) : key; }
+function tv(v){ return (LANG === 'en') ? (VMAP_EN[v] || v) : v; }
+function ti(key, obj){ let s = t(key); if(obj) for(const k in obj) s = s.split('{'+k+'}').join(obj[k]); return s; }
+
+/* ---------- تطبيق النصوص الثابتة + الاتجاه ---------- */
+function applyStaticI18n(){
+  const html = document.documentElement;
+  html.lang = LANG;
+  html.dir  = isRTL() ? 'rtl' : 'ltr';
+  document.title = t('page_title');
+  document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent = t(el.getAttribute('data-i18n')); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{ el.setAttribute('placeholder', t(el.getAttribute('data-i18n-ph'))); });
+  const ll = document.getElementById('langToggleLabel');
+  if(ll) ll.textContent = (LANG === 'ar') ? 'English' : 'العربية';
+}
+
+/* ---------- تبديل اللغة (يحفظ الاختيار ويعيد الرسم دون إعادة تحميل) ---------- */
+function setLanguage(lang){
+  LANG = lang;
+  try { localStorage.setItem('ovrLang', lang); } catch (e) {}
+  applyStaticI18n();
+  if(typeof window.__rerender === 'function') window.__rerender();
+  if(typeof toast === 'function') toast(t('lang_toast'));
+}
+
+</script>
+<script>
+/* ============================================================
+   لوحة تحكم نظام البلاغات الإلكترونية (OVR)
+   مبنية وفق سياسة QM&PS-APP-003 (إصدار 2)
+   — أُضيف دعم اللغتين دون تغيير أي منطق حسابي —
+   ============================================================ */
+'use strict';
+
+/* ---------- ثوابت ومعطيات أساسية ---------- */
+const TODAY = new Date('2026-06-22T00:00:00');
+const AR_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+
+const COLORS = {
+  teal:'#0E8C99', tealDeep:'#0A6B75',
+  green:'#15A34A', amber:'#E8930C', red:'#DC2626', blue:'#2563EB',
+  gridline:'#EEF3F4', muted:'#5C757D'
+};
+
+// مستويات الخطورة → المدة المستهدفة (أيام عمل) حسب السياسة
+const SEVERITIES = {
+  'أخضر (منخفض)':   { target:5,  key:'green'  },
+  'أصفر (متوسط)':   { target:5,  key:'yellow' },
+  'برتقالي (عالٍ)': { target:10, key:'amber'  },
+  'أحمر (حرج)':     { target:14, key:'red'    },
+};
+const SEV_ORDER = ['أخضر (منخفض)','أصفر (متوسط)','برتقالي (عالٍ)','أحمر (حرج)'];
+const HIGH_SEV = ['برتقالي (عالٍ)','أحمر (حرج)'];
+
+// الأقسام: الإدارة المسؤولة، وزن الحجم، ومعامل الجودة (احتمال الإغلاق في الوقت)
+const DEPTS = [
+  { name:'الطوارئ',                 admin:'الإدارة الطبية',              w:16, qf:0.79 },
+  { name:'العناية المركزة للأطفال', admin:'الإدارة الطبية',              w:9,  qf:0.86 },
+  { name:'حضانة المواليد (NICU)',   admin:'الإدارة الطبية',              w:10, qf:0.88 },
+  { name:'الولادة والطلق',          admin:'الإدارة الطبية',              w:13, qf:0.82 },
+  { name:'العيادات الخارجية',       admin:'الإدارة الطبية',              w:8,  qf:0.90 },
+  { name:'التمريض العام',           admin:'إدارة التمريض',               w:14, qf:0.87 },
+  { name:'تمريض النفاس',            admin:'إدارة التمريض',               w:9,  qf:0.92 },
+  { name:'تمريض الطوارئ',           admin:'إدارة التمريض',               w:11, qf:0.77 },
+  { name:'المختبر',                 admin:'الخدمات الطبية المساندة',     w:7,  qf:0.93 },
+  { name:'الأشعة',                  admin:'الخدمات الطبية المساندة',     w:6,  qf:0.89 },
+  { name:'الصيدلية',                admin:'الخدمات الطبية المساندة',     w:10, qf:0.83 },
+  { name:'خدمات التشغيل والصيانة',  admin:'الإدارة الإدارية والتشغيلية',  w:8,  qf:0.75 },
+];
+const ADMINS = ['الإدارة الطبية','إدارة التمريض','الخدمات الطبية المساندة','الإدارة الإدارية والتشغيلية'];
+
+const TYPES = [
+  { name:'خطأ دوائي',                  w:18 },
+  { name:'سقوط مريض',                  w:14 },
+  { name:'حدث وشيك (Near Miss)',       w:12 },
+  { name:'تأخر في تقديم الخدمة',       w:11 },
+  { name:'فشل / عطل أجهزة',            w:9  },
+  { name:'خطأ في الإجراء الطبي',       w:8  },
+  { name:'مخالفة سلامة',               w:8  },
+  { name:'عدوى مرتبطة بالرعاية',       w:7  },
+  { name:'إصابة موظف',                 w:7  },
+  { name:'خطأ في تحديد هوية المريض',   w:6  },
+];
+const TYPE_COLORS = ['#0E8C99','#15A34A','#2563EB','#E8930C','#8B5CF6','#DC2626','#0EA5A0','#D97706','#6366F1','#EC4899'];
+
+const STATUSES = ['مغلق','قيد المراجعة','قيد المعالجة','جديد'];
+const OWNERS = ['أ. عبدالله الشمري','أ. نورة المطيري','أ. سعد العنزي','د. هند الحربي','أ. ريم القحطاني','أ. تركي الدوسري'];
+
+/* ---------- مولّد أرقام شبه-عشوائي ثابت ---------- */
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+let RND = mulberry32(20240003);
+const rnd  = ()=>RND();
+const rint = (a,b)=>Math.floor(rnd()*(b-a+1))+a;
+function wpick(arr){ const tot=arr.reduce((s,x)=>s+x.w,0); let r=rnd()*tot; for(const x of arr){ r-=x.w; if(r<=0) return x; } return arr[arr.length-1]; }
+
+/* ---------- مساعدات التواريخ وأيام العمل (عطلة الجمعة/السبت) ---------- */
+const isWeekend = d => { const g=d.getDay(); return g===5||g===6; };
+function addWorkingDays(date,n){ const d=new Date(date); let added=0; while(added<n){ d.setDate(d.getDate()+1); if(!isWeekend(d)) added++; } return d; }
+function workingDaysBetween(a,b){ if(!a||!b) return 0; const d=new Date(a); d.setHours(0,0,0,0); const end=new Date(b); end.setHours(0,0,0,0); if(end<=d) return 0; let c=0; while(d<end){ d.setDate(d.getDate()+1); if(!isWeekend(d)) c++; } return c; }
+const fmtDate = d => d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` : '—';
+const monthKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+function monthSeq(){ const arr=[]; let y=2025,m=7; for(let i=0;i<12;i++){ arr.push({ key:`${y}-${String(m).padStart(2,'0')}`, label:`${AR_MONTHS[m-1]} ${String(y).slice(2)}`, y, m }); m++; if(m>12){m=1;y++;} } return arr; }
+const MONTHS = monthSeq();
+// اسم الشهر حسب اللغة الحالية (عربي/إنجليزي) — للعرض فقط
+function monthLabel(m){ const arr=(typeof LANG!=='undefined'&&LANG==='en')?EN_MONTHS:AR_MONTHS; return `${arr[m.m-1]} ${String(m.y).slice(2)}`; }
+
+/* ---------- توليد البيانات التجريبية ---------- */
+function generateData(){
+  RND = mulberry32(20240003);
+  const monthVol = [14,16,15,18,17,19,16,21,18,22,19,17]; // وزن حجم البلاغات لكل شهر
+  const monthW = MONTHS.map((m,i)=>({ ...m, w:monthVol[i] }));
+  const TARGET_N = 430;
+  const rows = [];
+  let seq = 1000;
+
+  for(let i=0;i<TARGET_N;i++){
+    const dept = wpick(DEPTS);
+    const type = wpick(TYPES).name;
+    const sev  = SEV_ORDER[ (()=>{ const r=rnd()*100; return r<42?0 : r<72?1 : r<92?2 : 3; })() ];
+    const target = SEVERITIES[sev].target;
+
+    // تاريخ الإنشاء: اختيار شهر مرجّح ثم يوم
+    const mo = wpick(monthW);
+    const created = new Date(mo.y, mo.m-1, rint(1,28), rint(8,16), rint(0,59));
+    const referral = addWorkingDays(created, rint(0,1));
+    const receipt  = addWorkingDays(created, rint(1,2));
+
+    const ageWD = workingDaysBetween(receipt, TODAY);
+
+    // احتمال أن يكون البلاغ مغلقاً بحسب عمره
+    let pClosed = ageWD>30 ? 0.90 : ageWD>15 ? 0.70 : ageWD>target ? 0.45 : 0.12;
+    let isClosed = rnd() < pClosed;
+
+    // تحسّن تدريجي في الالتزام عبر السنة (ثقافة الجودة)
+    const timeBonus = (mo.m===0?0:1) * (monthIndexOf(mo.key)/11) * 0.10;
+    const onTimeProb = clamp(dept.qf + timeBonus - (sev==='أحمر (حرج)'?0.04:0) + (rnd()-0.5)*0.06, 0.45, 0.99);
+
+    let closure=null, closureWD=null, compliance=null, status;
+    if(isClosed){
+      if(rnd() < onTimeProb) closureWD = rint(1, target);
+      else closureWD = target + rint(1, 8);
+      closure = addWorkingDays(receipt, closureWD);
+      if(closure > TODAY){ isClosed=false; closure=null; closureWD=null; } // لا يمكن الإغلاق مستقبلاً
+    }
+
+    let openDays;
+    if(isClosed){
+      status = 'مغلق';
+      compliance = closureWD<=target ? 'ملتزم' : 'غير ملتزم';
+      openDays = closureWD;
+    }else{
+      openDays = ageWD;
+      status = ageWD<=2 ? 'جديد' : (rnd()<0.5 ? 'قيد المراجعة' : 'قيد المعالجة');
+    }
+
+    rows.push({
+      id:'OVR-'+(++seq),
+      created, referral, receipt, closure,
+      dept:dept.name, admin:dept.admin, type, severity:sev,
+      status, target, closureWD, openDays, compliance,
+      owner: OWNERS[rint(0,OWNERS.length-1)],
+    });
+  }
+  rows.sort((a,b)=>b.created-a.created);
+  return rows;
+}
+function monthIndexOf(key){ return MONTHS.findIndex(m=>m.key===key); }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+
+/* ============================================================
+   الحالة والفلاتر
+   ============================================================ */
+let DATA = generateData();
+const FILTERS = { year:'', month:'', dept:'', admin:'', type:'', severity:'', status:'', compliance:'' };
+let logSearch='', logPage=1; const LOG_PER=15;
+const charts = {};
+
+const FILTER_DEFS = [
+  { key:'year',       labelKey:'f_year',       opts:()=>uniqueYears() },
+  { key:'month',      labelKey:'f_month',      opts:()=>Array.from({length:12},(_,i)=>({v:String(i+1),t:AR_MONTHS[i]})) },
+  { key:'dept',       labelKey:'f_dept',       opts:()=>uniqueVals('dept') },
+  { key:'admin',      labelKey:'f_admin',      opts:()=>uniqueVals('admin') },
+  { key:'type',       labelKey:'f_type',       opts:()=>uniqueVals('type') },
+  { key:'severity',   labelKey:'f_severity',   opts:()=>SEV_ORDER.map(v=>({v,t:v})) },
+  { key:'status',     labelKey:'f_status',     opts:()=>STATUSES.map(v=>({v,t:v})) },
+  { key:'compliance', labelKey:'f_compliance', opts:()=>[{v:'ملتزم',t:'ملتزم'},{v:'غير ملتزم',t:'غير ملتزم'},{v:'__open',t:'مفتوح (غير منطبق)'}] },
+];
+function uniqueYears(){ const s=new Set(DATA.map(r=>r.created.getFullYear())); return [...s].sort().map(y=>({v:String(y),t:String(y)})); }
+function uniqueVals(k){ const s=new Set(DATA.map(r=>r[k])); return [...s].map(v=>({v,t:v})); }
+
+function passFilters(r, opts={}){
+  const f=FILTERS;
+  if(!opts.ignoreTime){
+    if(f.year  && r.created.getFullYear()!==+f.year) return false;
+    if(f.month && (r.created.getMonth()+1)!==+f.month) return false;
+  }
+  if(f.dept && r.dept!==f.dept) return false;
+  if(f.admin && r.admin!==f.admin) return false;
+  if(f.type && r.type!==f.type) return false;
+  if(f.severity && r.severity!==f.severity) return false;
+  if(f.status && r.status!==f.status) return false;
+  if(f.compliance){
+    if(f.compliance==='__open'){ if(r.status==='مغلق') return false; }
+    else if(r.compliance!==f.compliance) return false;
+  }
+  return true;
+}
+const filtered    = ()=>DATA.filter(r=>passFilters(r));
+const filteredNT  = ()=>DATA.filter(r=>passFilters(r,{ignoreTime:true})); // يتجاهل فلتر الزمن (للاتجاهات والتنبيهات)
+
+/* ---------- تجميعات ---------- */
+function band(p){ return p>=90?'green' : p>=80?'amber' : 'red'; }
+function bandColor(p){ return p>=90?COLORS.green : p>=80?COLORS.amber : COLORS.red; }
+
+function summarize(rows){
+  const total = rows.length;
+  const closed = rows.filter(r=>r.status==='مغلق');
+  const open = rows.filter(r=>r.status!=='مغلق');
+  const compliant = closed.filter(r=>r.compliance==='ملتزم').length;
+  const closureRate = total? closed.length/total*100 : 0;
+  const complianceRate = closed.length? compliant/closed.length*100 : 0;
+  const avgClose = closed.length? closed.reduce((s,r)=>s+r.closureWD,0)/closed.length : 0;
+  const overdueNow = open.filter(r=>r.openDays>r.target);
+  const dueSoon = open.filter(r=>r.openDays<=r.target && (r.target-r.openDays)<=3);
+  const high = rows.filter(r=>HIGH_SEV.includes(r.severity)).length;
+  const underReview = rows.filter(r=>r.status==='قيد المراجعة').length;
+  return { total, closed:closed.length, open:open.length, compliant, closureRate, complianceRate,
+           avgClose, overdueNow, dueSoon, high, underReview };
+}
+function groupBy(rows,key){
+  const map={};
+  for(const r of rows){ (map[r[key]] ||= []).push(r); }
+  return Object.entries(map).map(([k,rs])=>({ name:k, rows:rs, ...summarize(rs) }));
+}
+
+/* ============================================================
+   التهيئة والربط
+   ============================================================ */
+function buildFilterUI(){
+  const grid=document.getElementById('filterGrid');
+  grid.innerHTML = FILTER_DEFS.map(def=>{
+    const opts = def.opts().map(o=>`<option value="${o.v}">${tv(o.t)}</option>`).join('');
+    return `<div class="fld"><label>${t(def.labelKey)}</label>
+      <select data-f="${def.key}"><option value="">${t('all')}</option>${opts}</select></div>`;
+  }).join('');
+  grid.querySelectorAll('select').forEach(sel=>{
+    sel.value = FILTERS[sel.dataset.f] || '';
+    sel.addEventListener('change',()=>{ FILTERS[sel.dataset.f]=sel.value; logPage=1; renderAll(); });
+  });
+}
+
+function setupTabs(){
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.addEventListener('click',()=>{
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(x=>x.classList.remove('show'));
+      t.classList.add('active');
+      document.getElementById('panel-'+t.dataset.tab).classList.add('show');
+      // إعادة رسم الرسوم في التبويب المعروض لضمان أبعاد صحيحة
+      requestAnimationFrame(()=>Object.values(charts).forEach(c=>c&&c.resize&&c.resize()));
+    });
+  });
+}
+
+/* ---------- KPIs ---------- */
+function renderKPIs(){
+  const s = summarize(filtered());
+  const cmpBand = band(s.complianceRate);
+  const ics = {
+    list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
+    open:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>',
+    check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>',
+    rate:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 5L5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>',
+    shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+    clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    warn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>',
+    review:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>',
+    fire:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2c1 3 4 4 4 8a4 4 0 0 1-8 0c0-2 1-3 2-4-1 4 2 4 2 0z"/></svg>',
+  };
+  const cards = [
+    { lbl:t('kpi_total'), val:s.total, ico:ics.list, bg:'tealbg', cls:'' },
+    { lbl:t('kpi_open'), val:s.open, ico:ics.open, bg:'bluebg', cls:'k-blue', sub:`${pct(s.open,s.total)} ${t('sub_of_total')}` },
+    { lbl:t('kpi_closed'), val:s.closed, ico:ics.check, bg:'greenbg', cls:'k-green' },
+    { lbl:t('kpi_closure_rate'), val:s.closureRate, p:true, ico:ics.rate, bg:'tealbg', cls:'' },
+    { lbl:t('kpi_compliance'), val:s.complianceRate, p:true, ico:ics.shield, bg:cmpBand+'bg', cls:'k-'+cmpBand, sub:ti('sub_compliant_of',{a:s.compliant,b:s.closed}) },
+    { lbl:t('kpi_overdue_rate'), val:100-s.complianceRate, p:true, ico:ics.warn, bg:'redbg', cls:'k-red' },
+    { lbl:t('kpi_avg_days'), val:s.avgClose, d:true, ico:ics.clock, bg:'tealbg', cls:'', sub:t('sub_working_days') },
+    { lbl:t('kpi_high'), val:s.high, ico:ics.fire, bg:'amberbg', cls:'k-amber', sub:t('sub_high_crit') },
+    { lbl:t('kpi_overdue_now'), val:s.overdueNow.length, ico:ics.warn, bg:'redbg', cls:'k-red', sub:t('sub_exceeded') },
+    { lbl:t('kpi_under_review'), val:s.underReview, ico:ics.review, bg:'bluebg', cls:'k-blue' },
+  ];
+  document.getElementById('kpiStrip').innerHTML = cards.map(c=>{
+    const v = c.p ? `${fmt1(c.val)}<small>%</small>` : c.d ? `${fmt1(c.val)}<small>${t('unit_days_short')}</small>` : `<span class="num">${c.val}</span>`;
+    return `<div class="kpi ${c.cls}">
+      <div class="lbl"><span class="dot ${c.bg}">${c.ico}</span>${c.lbl}</div>
+      <div class="val">${v}</div>${c.sub?`<div class="sub">${c.sub}</div>`:''}</div>`;
+  }).join('');
+
+  // شارة التنبيهات
+  const nt = summarize(filteredNT());
+  document.getElementById('alertBadge').textContent = nt.overdueNow.length + nt.dueSoon.length;
+}
+const pct = (a,b)=> b? Math.round(a/b*100)+'%' : '0%';
+const fmt1 = v => (Math.round(v*10)/10).toLocaleString('en-US');
+
+/* ---------- الرسوم ---------- */
+function destroy(id){ if(charts[id]){ charts[id].destroy(); charts[id]=null; } }
+const baseFont = { family:'IBM Plex Sans Arabic', size:12 };
+Chart.defaults.font.family='IBM Plex Sans Arabic';
+Chart.defaults.color=COLORS.muted;
+
+function renderGauge(){
+  const s = summarize(filtered());
+  const val = Math.round(s.complianceRate*10)/10;
+  document.getElementById('gaugeVal').textContent = fmt1(val)+'%';
+  document.getElementById('gaugeVal').style.color = bandColor(val);
+  destroy('gauge');
+  const ctx = document.getElementById('gaugeChart');
+  const needle = {
+    id:'needle',
+    afterDatasetDraw(chart){
+      const {ctx,chartArea}=chart;
+      const meta=chart.getDatasetMeta(0); const arc=meta.data[0]; if(!arc) return;
+      const cx=arc.x, cy=arc.y; const r=arc.outerRadius;
+      const ang = Math.PI + (val/100)*Math.PI;
+      ctx.save();
+      ctx.translate(cx,cy); ctx.rotate(ang);
+      ctx.beginPath(); ctx.moveTo(0,-4); ctx.lineTo(r-12,0); ctx.lineTo(0,4); ctx.closePath();
+      ctx.fillStyle=COLORS.tealDeep; ctx.fill();
+      ctx.beginPath(); ctx.arc(0,0,7,0,Math.PI*2); ctx.fillStyle=COLORS.tealDeep; ctx.fill();
+      ctx.beginPath(); ctx.arc(0,0,3.5,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
+      ctx.restore();
+    }
+  };
+  charts.gauge = new Chart(ctx,{
+    type:'doughnut',
+    data:{ datasets:[{ data:[80,10,10], backgroundColor:[COLORS.red,COLORS.amber,COLORS.green],
+      borderWidth:2, borderColor:'#fff', circumference:180, rotation:270, cutout:'68%' }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{enabled:false}}, animation:{duration:600} },
+    plugins:[needle]
+  });
+}
+
+function renderTypeChart(){
+  const g = groupBy(filtered(),'type').sort((a,b)=>b.total-a.total);
+  destroy('type');
+  charts.type = new Chart(document.getElementById('typeChart'),{
+    type:'doughnut',
+    data:{ labels:g.map(x=>tv(x.name)), datasets:[{ data:g.map(x=>x.total),
+      backgroundColor:g.map((x,i)=>TYPE_COLORS[TYPES.findIndex(t=>t.name===x.name)%TYPE_COLORS.length]||TYPE_COLORS[i%TYPE_COLORS.length]),
+      borderWidth:2, borderColor:'#fff' }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'55%',
+      plugins:{ legend:{ position:'left', rtl:isRTL(), labels:{boxWidth:11,boxHeight:11,padding:9,font:{size:11}} },
+        tooltip:{ rtl:isRTL(), callbacks:{ label:c=>` ${c.label}: ${c.parsed} ${t('unit_report')}` } } } }
+  });
+}
+
+function renderTrendMain(){
+  const rows = filteredNT();
+  const counts = MONTHS.map(m=>0);
+  const comp = MONTHS.map(()=>({c:0,n:0}));
+  rows.forEach(r=>{
+    const idx = monthIndexOf(monthKey(r.created)); if(idx<0) return;
+    counts[idx]++;
+    if(r.status==='مغلق'){ comp[idx].n++; if(r.compliance==='ملتزم') comp[idx].c++; }
+  });
+  const compRate = comp.map(x=> x.n? Math.round(x.c/x.n*100) : null);
+  destroy('trendMain');
+  charts.trendMain = new Chart(document.getElementById('trendMainChart'),{
+    data:{ labels:MONTHS.map(m=>monthLabel(m)),
+      datasets:[
+        { type:'bar', label:t('ds_count'), data:counts, backgroundColor:'rgba(14,140,153,.85)', borderRadius:6, yAxisID:'y', order:2 },
+        { type:'line', label:t('ds_comp'), data:compRate, borderColor:COLORS.green, backgroundColor:COLORS.green,
+          borderWidth:3, tension:.35, pointRadius:4, pointBackgroundColor:'#fff', pointBorderWidth:2, yAxisID:'y1', order:1, spanGaps:true }
+      ]},
+    options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
+      plugins:{ legend:{display:false}, tooltip:{rtl:isRTL()} },
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:{size:10.5}} },
+        y:{ position:'right', beginAtZero:true, grid:{color:COLORS.gridline}, title:{display:true,text:t('ax_count'),font:{size:11}} },
+        y1:{ position:'left', beginAtZero:true, max:100, grid:{drawOnChartArea:false}, ticks:{callback:v=>v+'%'}, title:{display:true,text:t('ax_comp'),font:{size:11}} }
+      } }
+  });
+}
+
+function renderDeptBar(){
+  const g = groupBy(filtered(),'dept').sort((a,b)=>b.total-a.total);
+  destroy('deptBar');
+  charts.deptBar = new Chart(document.getElementById('deptBarChart'),{
+    type:'bar',
+    data:{ labels:g.map(x=>tv(x.name)),
+      datasets:[{ label:t('ds_count'), data:g.map(x=>x.total),
+        backgroundColor:g.map(x=> x.closed? bandColor(x.complianceRate):COLORS.muted), borderRadius:6 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false},
+        tooltip:{ rtl:isRTL(), callbacks:{ label:c=>{ const x=g[c.dataIndex]; return [` ${c.parsed.x} ${t('unit_report')}`, ` ${t('tt_comp')}: ${fmt1(x.complianceRate)}%`]; } } } },
+      scales:{ x:{ beginAtZero:true, grid:{color:COLORS.gridline} }, y:{ grid:{display:false}, ticks:{font:{size:11}} } } }
+  });
+}
+
+function renderDeptTable(){
+  const g = groupBy(filtered(),'dept')
+    .sort((a,b)=> (b.closed?b.complianceRate:-1)-(a.closed?a.complianceRate:-1) || b.total-a.total);
+  const tb = document.querySelector('#deptTable tbody');
+  tb.innerHTML = g.map((x,i)=>{
+    const b = x.closed? band(x.complianceRate) : 'gray';
+    const rk = i<3? `rank r${i+1}`:'rank';
+    return `<tr>
+      <td><span class="${rk}">${i+1}</span></td>
+      <td><b>${tv(x.name)}</b></td>
+      <td style="color:var(--muted)">${tv(x.rows[0].admin)}</td>
+      <td><span class="num">${x.total}</span></td>
+      <td><span class="num">${x.closed}</span></td>
+      <td>${x.overdueNow.length? `<span class="pill red"><i></i>${x.overdueNow.length}</span>`:'<span class="num" style="color:var(--muted)">0</span>'}</td>
+      <td>${barCell(x.closureRate,COLORS.teal)}</td>
+      <td>${x.closed? barCell(x.complianceRate,bandColor(x.complianceRate)) : `<span class="pill gray"><i></i>${t('no_data')}</span>`}</td>
+      <td><span class="num">${fmt1(x.avgClose)}</span></td>
+      <td><span class="statusdot" style="color:${b==='gray'?COLORS.muted:b==='green'?COLORS.green:b==='amber'?COLORS.amber:COLORS.red}"></span></td>
+    </tr>`;
+  }).join('');
+}
+function barCell(p,color){
+  const v=Math.round(p);
+  return `<div class="bar-cell"><span class="num" style="min-width:34px">${fmt1(p)}%</span>
+    <div class="bar-track"><div class="bar-fill" style="width:${v}%;background:${color}"></div></div></div>`;
+}
+
+function renderAdmin(){
+  const g = groupBy(filtered(),'admin');
+  const order = ADMINS.filter(a=>g.find(x=>x.name===a));
+  const gm = order.map(a=>g.find(x=>x.name===a)).filter(Boolean);
+
+  destroy('adminComply');
+  charts.adminComply = new Chart(document.getElementById('adminComplyChart'),{
+    type:'bar',
+    data:{ labels:gm.map(x=>tv(x.name)),
+      datasets:[{ data:gm.map(x=>Math.round(x.complianceRate)),
+        backgroundColor:gm.map(x=>bandColor(x.complianceRate)), borderRadius:6 }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{rtl:isRTL(), callbacks:{label:c=>` ${t('tt_comp')}: ${c.parsed.y}%`}} },
+      scales:{ x:{grid:{display:false},ticks:{font:{size:11}}}, y:{beginAtZero:true,max:100,grid:{color:COLORS.gridline},ticks:{callback:v=>v+'%'}} } }
+  });
+
+  destroy('adminTime');
+  charts.adminTime = new Chart(document.getElementById('adminTimeChart'),{
+    type:'bar',
+    data:{ labels:gm.map(x=>tv(x.name)),
+      datasets:[{ data:gm.map(x=>Math.round(x.avgClose*10)/10),
+        backgroundColor:'rgba(37,99,235,.8)', borderRadius:6 }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{rtl:isRTL(), callbacks:{label:c=>` ${c.parsed.y} ${t('day_word')}`}} },
+      scales:{ x:{grid:{display:false},ticks:{font:{size:11}}}, y:{beginAtZero:true,grid:{color:COLORS.gridline}} } }
+  });
+
+  const tb=document.querySelector('#adminTable tbody');
+  const ranked=[...gm].sort((a,b)=>b.complianceRate-a.complianceRate);
+  tb.innerHTML = ranked.map(x=>{
+    const b=x.closed?band(x.complianceRate):'gray';
+    return `<tr>
+      <td><b>${tv(x.name)}</b></td>
+      <td><span class="num">${x.total}</span></td>
+      <td><span class="num">${x.compliant}</span></td>
+      <td>${x.closed?barCell(x.complianceRate,bandColor(x.complianceRate)):`<span class="pill gray"><i></i>${t('no_data')}</span>`}</td>
+      <td>${x.overdueNow.length?`<span class="pill red"><i></i>${x.overdueNow.length}</span>`:'<span class="num" style="color:var(--muted)">0</span>'}</td>
+      <td><span class="num">${fmt1(x.avgClose)} ${t('day_word')}</span></td>
+      <td>${pillFor(b)}</td>
+    </tr>`;
+  }).join('');
+}
+function pillFor(b){
+  if(b==='green') return `<span class="pill green"><i></i>${t('band_green')}</span>`;
+  if(b==='amber') return `<span class="pill amber"><i></i>${t('band_yellow')}</span>`;
+  if(b==='red')   return `<span class="pill red"><i></i>${t('band_red')}</span>`;
+  return '<span class="pill gray"><i></i>—</span>';
+}
+
+function renderTrendPanels(){
+  const rows = filteredNT();
+  const comp=MONTHS.map(()=>({c:0,n:0})), over=MONTHS.map(()=>0), close=MONTHS.map(()=>({s:0,n:0}));
+  rows.forEach(r=>{
+    const idx=monthIndexOf(monthKey(r.created)); if(idx<0) return;
+    if(r.status==='مغلق'){
+      comp[idx].n++; if(r.compliance==='ملتزم') comp[idx].c++; else over[idx]++;
+      close[idx].s+=r.closureWD; close[idx].n++;
+    }
+  });
+  const compRate=comp.map(x=>x.n?Math.round(x.c/x.n*100):null);
+  const avgClose=close.map(x=>x.n?Math.round(x.s/x.n*10)/10:null);
+  const lbls=MONTHS.map(m=>monthLabel(m));
+
+  destroy('complyTrend');
+  charts.complyTrend=new Chart(document.getElementById('complyTrendChart'),{
+    type:'line',
+    data:{ labels:lbls, datasets:[
+      { data:compRate, borderColor:COLORS.green, backgroundColor:'rgba(21,163,74,.10)', fill:true, tension:.35,
+        borderWidth:3, pointRadius:4, pointBackgroundColor:'#fff', pointBorderColor:COLORS.green, pointBorderWidth:2, spanGaps:true } ]},
+    options:lineOpts('%',[70,100])
+  });
+
+  destroy('overdueTrend');
+  charts.overdueTrend=new Chart(document.getElementById('overdueTrendChart'),{
+    type:'bar',
+    data:{ labels:lbls, datasets:[{ data:over, backgroundColor:'rgba(220,38,38,.78)', borderRadius:6 }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{rtl:isRTL(),callbacks:{label:c=>` ${c.parsed.y} ${t('unit_reports_overdue')}`}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{beginAtZero:true,grid:{color:COLORS.gridline},ticks:{precision:0}}} }
+  });
+
+  destroy('closeTrend');
+  charts.closeTrend=new Chart(document.getElementById('closureTimeTrendChart'),{
+    type:'line',
+    data:{ labels:lbls, datasets:[
+      { data:avgClose, borderColor:COLORS.blue, backgroundColor:'rgba(37,99,235,.08)', fill:true, tension:.35,
+        borderWidth:3, pointRadius:4, pointBackgroundColor:'#fff', pointBorderColor:COLORS.blue, pointBorderWidth:2, spanGaps:true } ]},
+    options:lineOpts(' '+t('day_word'))
+  });
+
+  renderHeatmap(rows);
+}
+function lineOpts(suffix,range){
+  return { responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{rtl:isRTL(),callbacks:{label:c=>` ${c.parsed.y}${suffix}`}}},
+    scales:{ x:{grid:{display:false},ticks:{font:{size:10}}},
+      y:Object.assign({grid:{color:COLORS.gridline}}, range?{min:range[0],max:range[1],ticks:{callback:v=>v+'%'}}:{beginAtZero:true}) } };
+}
+
+function renderHeatmap(rows){
+  const depts = DEPTS.map(d=>d.name).filter(dn=> rows.some(r=>r.dept===dn));
+  const cell = {};
+  rows.forEach(r=>{ if(r.status!=='مغلق') return; const k=r.dept+'|'+monthKey(r.created);
+    (cell[k] ||= {c:0,n:0}); cell[k].n++; if(r.compliance==='ملتزم') cell[k].c++; });
+  let html='<table><thead><tr><th></th>'+MONTHS.map(m=>`<th>${monthLabel(m)}</th>`).join('')+'</tr></thead><tbody>';
+  depts.forEach(dn=>{
+    html+=`<tr><td class="lbl">${tv(dn)}</td>`;
+    MONTHS.forEach(m=>{
+      const c=cell[dn+'|'+m.key];
+      if(!c||c.n===0){ html+='<td class="cell empty">·</td>'; }
+      else{ const p=Math.round(c.c/c.n*100); html+=`<td class="cell" style="background:${bandColor(p)}" title="${ti('heat_cell_title',{d:tv(dn),m:monthLabel(m),p:p,n:c.n})}">${p}</td>`; }
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  document.getElementById('heatmap').innerHTML=html;
+}
+
+/* ---------- التنبيهات ---------- */
+function renderAlerts(){
+  const rows=filteredNT();
+  const s=summarize(rows);
+  const over=[...s.overdueNow].sort((a,b)=>(b.openDays-b.target)-(a.openDays-a.target));
+  const soon=[...s.dueSoon].sort((a,b)=>(a.target-a.openDays)-(b.target-b.openDays));
+  const admins=groupBy(rows,'admin').filter(x=>x.closed>0).sort((a,b)=>a.complianceRate-b.complianceRate);
+  const depts=groupBy(rows,'dept').sort((a,b)=>b.overdueNow.length-a.overdueNow.length).filter(x=>x.overdueNow.length>0);
+
+  const itemsOver = over.length? over.slice(0,40).map(r=>`<div class="alert-item">
+      <span class="aid">${r.id}</span><span class="am">${tv(r.dept)} · ${tv(r.severity)}</span>
+      <span class="av" style="color:var(--red)">${ti('al_item_over',{n:r.openDays-r.target})}</span></div>`).join('')
+    : `<div class="empty-note">${t('al_empty_over')}</div>`;
+  const itemsSoon = soon.length? soon.slice(0,40).map(r=>`<div class="alert-item">
+      <span class="aid">${r.id}</span><span class="am">${tv(r.dept)} · ${tv(r.severity)}</span>
+      <span class="av" style="color:var(--amber)">${ti('al_item_soon',{n:r.target-r.openDays})}</span></div>`).join('')
+    : `<div class="empty-note">${t('al_empty_soon')}</div>`;
+  const itemsAdmin = admins.length? admins.slice(0,5).map(x=>`<div class="alert-item">
+      <span class="aid">${tv(x.name)}</span><span class="am">${ti('al_item_admin',{t:x.total,o:x.overdueNow.length})}</span>
+      <span class="av" style="color:${bandColor(x.complianceRate)}">${fmt1(x.complianceRate)}%</span></div>`).join('')
+    : `<div class="empty-note">${t('al_empty_admin')}</div>`;
+  const itemsDept = depts.length? depts.slice(0,8).map(x=>`<div class="alert-item">
+      <span class="aid">${tv(x.name)}</span><span class="am">${tv(x.rows[0].admin)}</span>
+      <span class="av" style="color:var(--red)">${ti('al_item_dept_v',{o:x.overdueNow.length})}</span></div>`).join('')
+    : `<div class="empty-note">${t('al_empty_dept')}</div>`;
+
+  const warn='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+  const clk='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+  const usr='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>';
+  const bld='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/></svg>';
+
+  document.getElementById('alertGrid').innerHTML = `
+    <div class="alert-card danger"><div class="ah"><span class="ai">${warn}</span>
+      <div><b>${t('al_over_title')}</b><small>${t('al_over_sub')}</small></div>
+      <span class="acount" style="color:var(--red)">${over.length}</span></div>
+      <div class="alert-list">${itemsOver}</div></div>
+
+    <div class="alert-card warn"><div class="ah"><span class="ai">${clk}</span>
+      <div><b>${t('al_soon_title')}</b><small>${t('al_soon_sub')}</small></div>
+      <span class="acount" style="color:var(--amber)">${soon.length}</span></div>
+      <div class="alert-list">${itemsSoon}</div></div>
+
+    <div class="alert-card info"><div class="ah"><span class="ai">${usr}</span>
+      <div><b>${t('al_admin_title')}</b><small>${t('al_admin_sub')}</small></div></div>
+      <div class="alert-list">${itemsAdmin}</div></div>
+
+    <div class="alert-card info"><div class="ah"><span class="ai">${bld}</span>
+      <div><b>${t('al_dept_title')}</b><small>${t('al_dept_sub')}</small></div></div>
+      <div class="alert-list">${itemsDept}</div></div>`;
+}
+
+/* ---------- سجل البلاغات ---------- */
+function logRows(){
+  let rows=filtered();
+  if(logSearch){
+    const q=logSearch.trim().toLowerCase();
+    rows=rows.filter(r=> [r.id,r.dept,r.admin,r.type,r.severity,r.status,r.compliance||'',
+      tv(r.dept),tv(r.admin),tv(r.type),tv(r.severity),tv(r.status),tv(r.compliance||'')].join(' ').toLowerCase().includes(q));
+  }
+  return rows;
+}
+function renderLog(){
+  const rows=logRows();
+  const pages=Math.max(1,Math.ceil(rows.length/LOG_PER));
+  if(logPage>pages) logPage=pages;
+  const start=(logPage-1)*LOG_PER;
+  const page=rows.slice(start,start+LOG_PER);
+  const tb=document.querySelector('#logTable tbody');
+  tb.innerHTML = page.map(r=>{
+    const compPill = r.status!=='مغلق' ? `<span class="pill blue"><i></i>${t('log_open')}</span>`
+      : r.compliance==='ملتزم' ? `<span class="pill green"><i></i>${t('log_compliant')}</span>`
+      : `<span class="pill red"><i></i>${t('log_noncompliant')}</span>`;
+    const stColor = r.status==='مغلق'?'green':r.status==='جديد'?'blue':'amber';
+    const dur = r.status==='مغلق'? `<span class="num">${ti('log_days',{n:r.closureWD})}</span>`
+      : `<span class="num" style="color:${r.openDays>r.target?'var(--red)':'var(--muted)'}">${ti('log_days_open',{n:r.openDays})}</span>`;
+    return `<tr>
+      <td><b>${r.id}</b></td><td>${tv(r.dept)}</td><td style="color:var(--muted)">${tv(r.admin)}</td>
+      <td>${tv(r.type)}</td><td>${sevPill(r.severity)}</td>
+      <td><span class="num">${fmtDate(r.created)}</span></td>
+      <td><span class="num">${fmtDate(r.closure)}</span></td>
+      <td>${dur}</td><td><span class="num">${ti('log_target_days',{n:r.target})}</span></td>
+      <td>${compPill}</td><td><span class="pill ${stColor}"><i></i>${tv(r.status)}</span></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="11" class="empty-note">${t('log_empty')}</td></tr>`;
+
+  document.getElementById('logCount').textContent = ti('log_count',{a:page.length? start+1:0, b:start+page.length, n:rows.length});
+  renderPager(pages);
+}
+function sevPill(s){ const k=SEVERITIES[s]?.key;
+  const map={green:'green',yellow:'amber',amber:'amber',red:'red'};
+  const cls=map[k]||'gray'; return `<span class="pill ${cls}"><i></i>${tv(s)}</span>`; }
+function renderPager(pages){
+  const p=document.getElementById('logPager');
+  if(pages<=1){ p.innerHTML=''; return; }
+  let html=`<button ${logPage===1?'disabled':''} data-go="${logPage-1}">‹</button>`;
+  const win=[];
+  for(let i=1;i<=pages;i++){ if(i===1||i===pages||Math.abs(i-logPage)<=1) win.push(i); else if(win[win.length-1]!=='…') win.push('…'); }
+  win.forEach(i=> html += i==='…' ? `<button disabled>…</button>` : `<button class="${i===logPage?'on':''}" data-go="${i}">${i}</button>`);
+  html+=`<button ${logPage===pages?'disabled':''} data-go="${logPage+1}">›</button>`;
+  p.innerHTML=html;
+  p.querySelectorAll('button[data-go]').forEach(b=>b.addEventListener('click',()=>{ logPage=+b.dataset.go; renderLog(); }));
+}
+
+/* ---------- التصدير ---------- */
+function exportExcel(){
+  const rows=logRows();
+  const data=rows.map(r=>({
+    [t('ex_id')]:r.id,[t('ex_dept')]:tv(r.dept),[t('ex_admin')]:tv(r.admin),[t('ex_type')]:tv(r.type),[t('ex_sev')]:tv(r.severity),
+    [t('ex_created')]:fmtDate(r.created),[t('ex_referral')]:fmtDate(r.referral),[t('ex_receipt')]:fmtDate(r.receipt),
+    [t('ex_closure')]:fmtDate(r.closure),[t('ex_dur')]:r.status==='مغلق'?r.closureWD:'',
+    [t('ex_open_days')]:r.status==='مغلق'?'':r.openDays,[t('ex_target')]:r.target,
+    [t('ex_comp')]:r.status==='مغلق'?tv(r.compliance):t('ex_open'),[t('ex_status')]:tv(r.status),[t('ex_owner')]:r.owner,
+  }));
+  const ws=XLSX.utils.json_to_sheet(data);
+  ws['!cols']=Object.keys(data[0]||{'x':1}).map(()=>({wch:16}));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,t('ex_sheet'));
+  XLSX.writeFile(wb,`${t('ex_filename')}_${fmtDate(TODAY)}.xlsx`);
+  toast(ti('toast_export',{n:rows.length}));
+}
+
+/* ---------- الاستيراد ---------- */
+const HEADER_MAP = {
+  'رقم البلاغ':'id','ovr number':'id','ovr':'id','report id':'id',
+  'تاريخ ووقت إنشاء البلاغ':'created','تاريخ الإنشاء':'created','تاريخ إنشاء البلاغ':'created','created date':'created',
+  'القسم المبلغ':'dept','القسم':'dept','department':'dept',
+  'الإدارة المسؤولة':'admin','الإدارة':'admin','administration':'admin',
+  'نوع البلاغ':'type','report type':'type','مستوى الخطورة':'severity','severity':'severity','حالة البلاغ':'status','report status':'status','status':'status',
+  'تاريخ الإحالة':'referral','referral date':'referral','تاريخ استلام البلاغ':'receipt','تاريخ الاستلام':'receipt','receipt date':'receipt',
+  'تاريخ إغلاق البلاغ':'closure','تاريخ الإغلاق':'closure','closure date':'closure',
+  'المدة المستهدفة للإغلاق حسب السياسة':'target','المدة المستهدفة':'target','target time':'target',
+  'المسؤول عن الإجراء التصحيحي':'owner','المسؤول عن الإجراء':'owner','action owner':'owner',
+};
+function normSeverity(v){
+  if(!v) return 'أصفر (متوسط)';
+  const s=String(v).toLowerCase();
+  if(/حرج|أحمر|احمر|extreme|critical|red/.test(s)) return 'أحمر (حرج)';
+  if(/عال|أمبر|امبر|برتقال|high|amber|orange/.test(s)) return 'برتقالي (عالٍ)';
+  if(/منخفض|أخضر|اخضر|low|green/.test(s)) return 'أخضر (منخفض)';
+  return 'أصفر (متوسط)';
+}
+function parseDate(v){
+  if(v==null||v==='') return null;
+  if(v instanceof Date && !isNaN(v)) return v;
+  if(typeof v==='number'){ const o=XLSX.SSF.parse_date_code(v); if(o) return new Date(o.y,o.m-1,o.d,o.H||0,o.M||0); }
+  const d=new Date(v); return isNaN(d)?null:d;
+}
+function importExcel(file){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const json=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!json.length){ toast(t('toast_empty_file'),'err'); return; }
+      const out=[];
+      json.forEach((row,i)=>{
+        const r={};
+        for(const [k,v] of Object.entries(row)){
+          const key=HEADER_MAP[String(k).trim().toLowerCase()] || HEADER_MAP[String(k).trim()];
+          if(key) r[key]=v;
+        }
+        const created=parseDate(r.created)||new Date();
+        const receipt=parseDate(r.receipt)||created;
+        const closure=parseDate(r.closure);
+        const severity=normSeverity(r.severity);
+        const target=Number(r.target)||SEVERITIES[severity].target;
+        let status=String(r.status||'').trim();
+        const isClosed = closure!=null || /مغلق|closed/i.test(status);
+        if(!status) status = isClosed?'مغلق':'قيد المراجعة';
+        const closureWD = isClosed&&closure? workingDaysBetween(receipt,closure) : null;
+        const openDays = isClosed? (closureWD??0) : workingDaysBetween(receipt,TODAY);
+        const compliance = isClosed&&closure? (closureWD<=target?'ملتزم':'غير ملتزم') : null;
+        out.push({
+          id:r.id?String(r.id):'OVR-'+(2000+i),
+          created, referral:parseDate(r.referral)||created, receipt, closure,
+          dept:String(r.dept||'غير محدد').trim(), admin:String(r.admin||'غير محدد').trim(),
+          type:String(r.type||'غير محدد').trim(), severity,
+          status: isClosed?'مغلق':status, target, closureWD, openDays, compliance,
+          owner:String(r.owner||'—').trim(),
+        });
+      });
+      DATA=out.sort((a,b)=>b.created-a.created);
+      Object.keys(FILTERS).forEach(k=>FILTERS[k]='');
+      logPage=1; logSearch='';
+      document.getElementById('logSearch').value='';
+      buildFilterUI(); renderAll();
+      toast(ti('toast_import_ok',{n:out.length}));
+    }catch(err){ console.error(err); toast(t('toast_import_err'),'err'); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ---------- أدوات واجهة ---------- */
+function toast(msg,type){
+  const t=document.getElementById('toast'); t.textContent=msg;
+  t.style.background = type==='err' ? 'var(--red)' : 'var(--ink)';
+  t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+/* ---------- إعادة الرسم الكامل ---------- */
+function renderAll(){
+  renderKPIs();
+  renderGauge(); renderTypeChart(); renderTrendMain();
+  renderDeptBar(); renderDeptTable();
+  renderAdmin();
+  renderTrendPanels();
+  renderAlerts();
+  renderLog();
+}
+// جسر لإعادة البناء عند تبديل اللغة (يستدعيه setLanguage في i18n.js)
+window.__rerender = ()=>{ buildFilterUI(); renderAll(); };
+
+/* ---------- التشغيل ---------- */
+function init(){
+  if(typeof applyStaticI18n==='function') applyStaticI18n(); // تطبيق اللغة المحفوظة على النصوص الثابتة والاتجاه
+  buildFilterUI();
+  setupTabs();
+  document.getElementById('resetBtn').addEventListener('click',()=>{
+    Object.keys(FILTERS).forEach(k=>FILTERS[k]=''); logPage=1; buildFilterUI(); renderAll(); toast(t('toast_reset'));
+  });
+  document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('fileInput').click());
+  document.getElementById('fileInput').addEventListener('change',e=>{ if(e.target.files[0]) importExcel(e.target.files[0]); e.target.value=''; });
+  document.getElementById('printBtn').addEventListener('click',()=>window.print());
+  document.getElementById('expExcel').addEventListener('click',exportExcel);
+  document.getElementById('expPdf').addEventListener('click',()=>window.print());
+  document.getElementById('logSearch').addEventListener('input',e=>{ logSearch=e.target.value; logPage=1; renderLog(); });
+  const lt=document.getElementById('langToggle');
+  if(lt) lt.addEventListener('click',()=> setLanguage(LANG==='ar'?'en':'ar'));
+  renderAll();
+}
+document.addEventListener('DOMContentLoaded',init);
+
+</script>
+</body>
+</html>
